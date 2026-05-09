@@ -27,91 +27,6 @@ warnings.filterwarnings('ignore')
 
 
 # ============================================================================
-# SECTION 1: SYNTHETIC DATASET GENERATION (Based on Your Dataset Structure)
-# ============================================================================
-
-class ASDDatasetGenerator:
-    """Generate realistic ASD screening dataset based on behavioral markers"""
-
-    def __init__(self, n_samples=300, seed=42):
-        self.n_samples = n_samples
-        self.seed = seed
-        np.random.seed(seed)
-
-    def generate_dataset(self):
-        """
-        Generate dataset with:
-        - A1-A10: Behavioral questionnaire responses (0-1)
-        - Age: Age of child (1-6 years)
-        - Gender: M/F
-        - Ethnicity: Categorical
-        - Family_History: Yes/No
-        - AQ_Score: Autism Quotient score (0-10)
-        - Class: ASD/No ASD
-        - Severity: Mild/Moderate/Severe (for ASD cases)
-        """
-
-        data = {}
-
-        # Generate behavioral indicators (A1-A10)
-        # These represent: eye contact, speech patterns, repetitive behavior, 
-        # social interaction, communication, etc.
-        for i in range(1, 11):
-            data[f'A{i}'] = np.random.randint(0, 2, self.n_samples)
-
-        # Demographics
-        data['Age'] = np.random.uniform(1, 6, self.n_samples)
-        data['Gender'] = np.random.choice(['M', 'F'], self.n_samples)
-        data['Ethnicity'] = np.random.choice(
-            ['Asian', 'Caucasian', 'Hispanic', 'African', 'Mixed'],
-            self.n_samples
-        )
-        data['Family_History'] = np.random.choice(['Yes', 'No'], self.n_samples, p=[0.3, 0.7])
-
-        # Create AQ_Score based on behavioral indicators
-        behavioral_sum = sum(data[f'A{i}'] for i in range(1, 11))
-        # Ensure it's correctly evaluated as an int
-        data['AQ_Score'] = (behavioral_sum / 10 * 10)
-        data['AQ_Score'] = [int(v) for v in data['AQ_Score']]
-        data['AQ_Score'] = np.clip(data['AQ_Score'], 0, 10)
-
-        # Create Class label based on AQ_Score with some noise
-        asd_threshold = 6
-        data['Class'] = ['ASD' if score >= asd_threshold else 'No ASD'
-                         for score in data['AQ_Score']]
-
-        # Add family history influence
-        for idx, family_hist in enumerate(data['Family_History']):
-            if family_hist == 'Yes' and data['Class'][idx] == 'No ASD':
-                # 40% chance of reclassification if family history
-                if np.random.random() < 0.4:
-                    data['Class'][idx] = 'ASD'
-
-        # Severity classification (only for ASD cases)
-        severity = []
-        for idx, label in enumerate(data['Class']):
-            if label == 'ASD':
-                score = data['AQ_Score'][idx]
-                if score < 4:
-                    severity.append('Mild')
-                elif score < 7:
-                    severity.append('Moderate')
-                else:
-                    severity.append('Severe')
-            else:
-                severity.append('Non-ASD')
-        data['Severity'] = severity
-
-        # Create DataFrame
-        df = pd.DataFrame(data)
-
-        # Add Case_ID
-        df.insert(0, 'Case_ID', [f'CASE_{i + 1:03d}' for i in range(self.n_samples)])
-
-        return df
-
-
-# ============================================================================
 # SECTION 2: DATA PREPROCESSING & FEATURE ENGINEERING
 # ============================================================================
 
@@ -575,11 +490,10 @@ def main():
     print("ASD EARLY DETECTION FRAMEWORK - COMPREHENSIVE ANALYSIS")
     print("=" * 80)
 
-    # Step 1: Generate Dataset
-    print("\n[Step 1] Generating synthetic ASD dataset...")
-    generator = ASDDatasetGenerator(n_samples=300, seed=42)
-    df = generator.generate_dataset()
-    print(f"✓ Dataset generated: {df.shape[0]} samples, {df.shape[1]} features")
+    # Step 1: Load Real Dataset
+    print("\n[Step 1] Loading ASD dataset from Excel...")
+    df = pd.read_excel('ASD_Dataset_Last Update (1).xlsx')
+    print(f"✓ Dataset loaded: {df.shape[0]} samples, {df.shape[1]} features")
     print(f"\nDataset Preview:")
     print(df.head(10))
 
